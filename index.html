@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0c111b">
+  <title>Permit Risk QA Fixtures</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #090d14; color: #e6edf3; }
+    nav { position: sticky; top: 0; z-index: 5; display: flex; gap: 8px; overflow-x: auto; padding: 11px 16px; background: #0d1117f2; border-bottom: 1px solid #30363d; }
+    nav a { color: #c9d1d9; text-decoration: none; white-space: nowrap; padding: 7px 10px; border-radius: 8px; background: #161b22; }
+    main { max-width: 980px; margin: auto; padding: 24px 16px 80px; }
+    h1 { margin: 4px 0 8px; font-size: 28px; } h2 { margin-top: 32px; }
+    p, li { color: #b7c4d4; line-height: 1.55; }
+    .card, details { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 16px; margin: 12px 0; }
+    summary { cursor: pointer; font-weight: 750; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(245px, 1fr)); gap: 10px; margin-top: 13px; }
+    .case { display: flex; flex-direction: column; border: 1px solid #30363d; border-radius: 10px; background: #0d1117; padding: 13px; }
+    .case h3 { margin: 0 0 6px; font-size: 16px; }
+    .case p { flex: 1; margin: 3px 0 10px; font-size: 13px; }
+    .tag { align-self: flex-start; margin-bottom: 8px; padding: 3px 7px; border-radius: 20px; background: #30363d; color: #79c0ff; font-size: 11px; }
+    .tag.tx { color: #ffb86b; } .tag.read { color: #a5d6ff; }
+    button { border: 0; border-radius: 8px; padding: 10px 13px; margin: 4px 6px 4px 0; font-weight: 700; cursor: pointer; background: #30363d; color: white; }
+    button.primary { background: #238636; } button.danger { background: #da3633; }
+    button:disabled { opacity: .42; cursor: not-allowed; }
+    label, .label { color: #8b949e; font-size: 12px; }
+    input, select { width: 100%; padding: 10px; margin: 5px 0 11px; border-radius: 7px; border: 1px solid #30363d; background: #090d14; color: #e6edf3; }
+    code, pre { overflow-wrap: anywhere; white-space: pre-wrap; }
+    pre { max-height: 460px; overflow: auto; background: #090d14; padding: 12px; border-radius: 8px; font-size: 11px; }
+    .ok { color: #3fb950; } .warn { color: #d29922; } .error { color: #f85149; }
+    .notice { border-left: 4px solid #d29922; padding-left: 12px; }
+    .steps li { margin-bottom: 5px; }
+  </style>
+</head>
+<body>
+<nav aria-label="测试分组">
+  <a href="#setup">准备</a><a href="#permit">Permit</a><a href="#dai">DAI Permit</a><a href="#permit2">Permit2</a><a href="#negative">对照</a><a href="#tx">链上操作</a><a href="#evidence">证据</a>
+</nav>
+<main>
+  <p>OPS-262 · imToken QA fixture</p>
+  <h1>Permit / Permit2 风险提示测试 DApp</h1>
+  <p class="notice">默认用例只发起 typed-data 签名请求，不广播、不改变授权。标记“链上交易”的按钮会在浏览器二次确认后才交给钱包。</p>
+
+  <section id="setup" class="card">
+    <h2>1. 连接与测试参数</h2>
+    <button id="connect" class="primary">连接 imToken 内置钱包</button>
+    <button id="switch" disabled>切换 Ethereum Mainnet</button>
+    <button id="refresh" disabled>刷新状态</button>
+    <p id="status" class="warn">请使用专用测试钱包，并切换到 Ethereum Mainnet。</p>
+    <div class="grid">
+      <div><span class="label">当前账户</span><br><code id="account">未连接</code></div>
+      <div><span class="label">当前网络</span><br><code id="chain">未知</code></div>
+      <div><span class="label">USDC</span><br><code id="usdc"></code></div>
+      <div><span class="label">DAI</span><br><code id="daiAddress"></code></div>
+      <div><span class="label">Permit2</span><br><code id="permit2Address"></code></div>
+    </div>
+    <label for="spender">正常 EOA spender（默认 Felix 提供地址）</label>
+    <input id="spender" autocomplete="off">
+    <label for="riskSpender">黑名单 spender（必填；使用 QA 当前有效 fixture）</label>
+    <input id="riskSpender" placeholder="0x… 不提供时黑名单用例不会执行" autocomplete="off">
+    <label for="spenderMode">本次按钮使用的 spender</label>
+    <select id="spenderMode"><option value="normal">正常 EOA spender</option><option value="risk">黑名单 spender</option></select>
+    <ol class="steps">
+      <li>在 imToken staging build 的 DApp 浏览器打开本页并连接专用测试钱包。</li>
+      <li>确认网络显示 <code>eip155:1 Ethereum Mainnet</code>。</li>
+      <li>普通用例保持“正常 EOA”；黑名单用例填入 fixture 后切换为“黑名单 spender”。</li>
+      <li>点击单个用例；在钱包 Preview 检查地址、金额、风险文案和阻断行为，然后取消或签名。</li>
+      <li>返回页面复制 JSON 证据，并记录 App build、平台、截图/录屏和实际结果。</li>
+    </ol>
+  </section>
+
+  <section id="permit">
+    <h2>2. ERC-2612 Permit（USDC）</h2>
+    <details open><summary>Permit typed data · 3 cases</summary><div class="grid">
+      <article class="case"><span class="tag">仅签名</span><h3>P01 · 授权 1 USDC</h3><p>value=1,000,000。EOA 应出现 <code>risk_info_approve_address_eoa</code> warning；黑名单还应出现 <code>address_is_block</code> 并阻断。</p><button data-case="usdcPermitOne">发起签名</button></article>
+      <article class="case"><span class="tag">仅签名</span><h3>P02 · 无限授权</h3><p>value=uint256.max。检查无限授权展示、spender 和风险提示。</p><button class="danger" data-case="usdcPermitMax">发起签名</button></article>
+      <article class="case"><span class="tag">仅签名</span><h3>P03 · 撤销授权</h3><p>value=0。应显示撤销语义，不误报“新增 EOA 授权”风险。</p><button data-case="usdcPermitZero">发起签名</button></article>
+    </div></details>
+  </section>
+
+  <section id="dai">
+    <h2>3. DAI-style Permit</h2>
+    <details open><summary>DAI Permit typed data · 2 cases</summary><div class="grid">
+      <article class="case"><span class="tag">仅签名</span><h3>P04 · allowed=true</h3><p>DAI Permit 授权。正常 EOA 应提示 warning；黑名单应附加阻断风险。</p><button data-case="daiPermitAllow">发起签名</button></article>
+      <article class="case"><span class="tag">仅签名</span><h3>P05 · allowed=false</h3><p>DAI Permit 撤销。应显示撤销语义，不误报授权风险。</p><button data-case="daiPermitDeny">发起签名</button></article>
+    </div></details>
+  </section>
+
+  <section id="permit2">
+    <h2>4. Permit2</h2>
+    <details open><summary>PermitSingle · 3 cases</summary><div class="grid">
+      <article class="case"><span class="tag">仅签名</span><h3>P06 · Single 1 USDC</h3><p>amount=1,000,000。检查 token、spender、expiration、warning/阻断。</p><button data-case="permit2SingleOne">发起签名</button></article>
+      <article class="case"><span class="tag">仅签名</span><h3>P07 · Single uint160.max</h3><p>Permit2 最大授权，Preview 应明确无限/超大金额和风险。</p><button class="danger" data-case="permit2SingleMax">发起签名</button></article>
+      <article class="case"><span class="tag">仅签名</span><h3>P08 · Single amount=0</h3><p>撤销语义，不应误报新增授权风险。</p><button data-case="permit2SingleZero">发起签名</button></article>
+    </div></details>
+    <details open><summary>PermitBatch · 2 cases</summary><div class="grid">
+      <article class="case"><span class="tag">仅签名</span><h3>P09 · Batch 混合金额</h3><p>第一项 USDC=0，第二项 DAI=1。风险必须绑定第二项和同一 spender，不能因首项为 0 漏判。</p><button data-case="permit2BatchMixed">发起签名</button></article>
+      <article class="case"><span class="tag">仅签名</span><h3>P10 · Batch 全部为 0</h3><p>USDC=0、DAI=0。整体应按撤销处理，不误报新增授权风险。</p><button data-case="permit2BatchZero">发起签名</button></article>
+    </div></details>
+  </section>
+
+  <section id="negative">
+    <h2>5. 反向与解析对照</h2>
+    <details open><summary>不应进入 Approve 风险链路 · 2 cases</summary><div class="grid">
+      <article class="case"><span class="tag">仅签名</span><h3>N01 · 非 Permit typed data</h3><p>primaryType=Mail，包含普通文本。不得识别为授权或展示 EOA Approve 风险。</p><button data-case="plainTypedData">发起签名</button></article>
+      <article class="case"><span class="tag read">只读</span><h3>N02 · 检查 spender code</h3><p>读取当前 spender 的 bytecode。正常地址应为 <code>0x</code>；若不是，不能用于 EOA 用例。</p><button data-case="checkSpender">读取</button></article>
+    </div></details>
+  </section>
+
+  <section id="tx">
+    <h2>6. 普通 Approve 链上对照</h2>
+    <p class="warn">以下会生成真实 Ethereum Mainnet 交易并消耗 gas。无需验证时不要执行；浏览器会先二次确认。</p>
+    <details><summary>链上操作 · 3 cases</summary><div class="grid">
+      <article class="case"><span class="tag tx">链上交易</span><h3>T01 · USDC approve 1</h3><p>普通 Approve 正向对照，spender 风险提示不得回退。</p><button class="danger" data-case="approveOne">生成交易</button></article>
+      <article class="case"><span class="tag tx">链上交易</span><h3>T02 · USDC approve 0</h3><p>撤销普通 Approve，对应 allowance 归零。</p><button class="danger" data-case="approveZero">生成交易</button></article>
+      <article class="case"><span class="tag read">只读</span><h3>T03 · 查询 allowance</h3><p>查询当前账户对所选 spender 的 USDC allowance，不产生交易。</p><button data-case="readAllowance">查询</button></article>
+    </div></details>
+  </section>
+
+  <section id="evidence" class="card">
+    <h2>7. QA 证据</h2>
+    <button id="copy">复制 JSON</button><button id="clear">清空</button>
+    <pre id="output">尚未执行用例</pre>
+  </section>
+</main>
+<script src="./app.js"></script>
+</body>
+</html>
