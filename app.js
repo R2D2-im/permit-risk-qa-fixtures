@@ -3,7 +3,9 @@
 const CHAIN_ID = 1
 const CHAIN_HEX = '0x1'
 const DEFAULT_SPENDER = '0x4031e602f315e37ec17415740fd24605372911b6'
-const USDC = '0xA0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'
+// Keep contract addresses lowercase when sending transactions. A mixed-case
+// address with an invalid EIP-55 checksum is rejected by imToken before preview.
+const USDC = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'
 const DAI = '0x6B175474E89094C44Da98b954EedeAC495271d0F'
 const PERMIT2 = '0x000000000022D473030F116dDEE9F6B43aC78BA3'
 const ONE_USDC = 1_000_000n
