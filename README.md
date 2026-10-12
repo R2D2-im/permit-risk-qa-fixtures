@@ -8,6 +8,9 @@ It generates Ethereum Mainnet EIP-712 requests for:
 - DAI-style Permit: `allowed=true` and `allowed=false`
 - Permit2 `PermitSingle`: finite, maximum, and zero-value revoke
 - Permit2 `PermitBatch`: first item zero / second non-zero, and all-zero revoke
+- security regression encodings: hex integers, JSON numbers, mixed batch
+  representations, and mixed zero representations
+- undeclared-field interference controls for ERC-2612 and DAI-style Permit
 - non-Permit typed-data negative control
 - standard USDC `approve` / revoke transaction controls and allowance reads
 
@@ -22,6 +25,13 @@ python3 -m http.server 8080 --directory /Users/r2d2/clawd/manual-test/permit-ris
 ```
 
 Open `http://<reachable-host>:8080` in the imToken DApp browser.
+
+## Validate fixture wiring
+
+```sh
+node --check app.js
+node tests/fixture_contract_test.js
+```
 
 ## Fixed contracts
 
@@ -43,6 +53,8 @@ currently valid risk fixture and record its provenance with the test evidence.
   authorization warning
 - non-Permit typed data: no Approve risk classification
 - Batch mixed amount: risk binds to the non-zero detail, not only the first item
+- raw JSON type is preserved in S01–S10; verify copied evidence rather than only
+  the wallet's formatted token amount
 
 Record the App version/build, OS, device, spender mode/address provenance,
 screenshots or recording, copied JSON evidence, and actual result for every case.
