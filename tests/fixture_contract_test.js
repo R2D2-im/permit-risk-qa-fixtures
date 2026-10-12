@@ -24,9 +24,26 @@ const requiredRawFixtures = [
   '{ value: 0 }'
 ]
 
+const requiredUnprefixedFixtures = [
+  'A01-erc2612-unprefixed-approve',
+  'A02-dai-unprefixed-approve',
+  'A03-permit2-single-unprefixed-approve',
+  'A04-permit2-batch-unprefixed-approve',
+  'A05-erc2612-unprefixed-revoke',
+  'A06-dai-unprefixed-revoke',
+  'A07-permit2-single-unprefixed-revoke',
+  'A08-permit2-batch-unprefixed-revoke',
+  'A09-non-permit-unprefixed-spender'
+]
+
 for (const fixture of requiredRawFixtures) {
   assert(app.includes(fixture), `missing raw security fixture: ${fixture}`)
 }
 
+for (const fixture of requiredUnprefixedFixtures) {
+  assert(app.includes(fixture), `missing unprefixed spender fixture: ${fixture}`)
+}
+
 assert(!app.includes('return { token, amount: amount.toString()'), 'Permit2 helper must not normalize raw amount encoding')
-console.log(`validated ${buttons.size} DApp cases and ${requiredRawFixtures.length} raw security fixtures`)
+assert(app.includes("replace(/^0x/i, '')"), 'SEC-002 fixtures must remove exactly one optional 0x prefix')
+console.log(`validated ${buttons.size} DApp cases, ${requiredRawFixtures.length} raw amount fixtures, and ${requiredUnprefixedFixtures.length} unprefixed spender fixtures`)
