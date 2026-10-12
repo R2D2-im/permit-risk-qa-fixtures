@@ -46,4 +46,6 @@ for (const fixture of requiredUnprefixedFixtures) {
 
 assert(!app.includes('return { token, amount: amount.toString()'), 'Permit2 helper must not normalize raw amount encoding')
 assert(app.includes("replace(/^0x/i, '')"), 'SEC-002 fixtures must remove exactly one optional 0x prefix')
+assert(app.includes('/^(?:0x)?[0-9a-fA-F]{40}$/i'), 'spender input must accept valid prefixed and unprefixed addresses')
+assert(app.includes("return prefixedAddress(value)"), 'shared controls must canonicalize accepted input before use')
 console.log(`validated ${buttons.size} DApp cases, ${requiredRawFixtures.length} raw amount fixtures, and ${requiredUnprefixedFixtures.length} unprefixed spender fixtures`)
