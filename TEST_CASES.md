@@ -95,6 +95,38 @@
 
 预期：N01 不误识别为 Permit；正常地址 `isEOA=true`。黑名单 fixture 是否为 EOA 必须按实际结果记录，不能预设。
 
+## S01–S04 非零金额编码回归
+
+对正常 EOA 和有效黑名单 spender 分别执行：
+
+- S01：ERC-2612 `value: "0x1"`。
+- S02：PermitSingle `details.amount: 1`，必须在复制的 JSON 中确认类型为 number。
+- S03：PermitBatch amounts 为 `["0", "0x1"]`。
+- S04：PermitBatch amounts 为 `["0", 1]`。
+
+预期：四个场景都按非零授权处理。正常 EOA 出现 `risk_info_approve_address_eoa`；黑名单出现 `address_is_block` 且只能拒绝。S03/S04 的风险必须来自第二项，不能因第一项为零而漏判。
+
+## S05–S08 不同编码的真实零值
+
+对正常 EOA 和有效黑名单 spender 分别执行：
+
+- S05：ERC-2612 `value: "0x0"`。
+- S06：PermitSingle `details.amount: 0`（JSON number）。
+- S07：PermitBatch amounts 为 `["0", "0x0"]`。
+- S08：PermitBatch amounts 为 `["0", 0]`。
+
+预期：均按撤销处理，不出现新增授权的 EOA warning。必须保留实际 typed data 证据，确认 App 没有在发送前改写原始类型。
+
+## S09–S10 未声明字段干扰
+
+1. S09 发送 ERC-2612 已声明非零 `value:"1"`，同时在 message 放入 schema 未声明的 `allowed:false`。
+2. S10 发送 DAI 已声明 `allowed:true`，同时在 message 放入 schema 未声明的 `value:0`。
+3. 两项均先执行正常 EOA，再执行有效黑名单 spender。
+
+预期：未声明字段不能改变签名 schema 的语义。S09/S10 都必须保留授权风险；正常 EOA 可继续风险确认，黑名单只能拒绝。
+
+说明：空值、缺失、负数、越界、不完整批次、重复或歧义 schema 可能在钱包 EIP-712 编码层先被拒绝，不能稳定到达 Preview，因此以 API/单测作为主验收；若 App 允许请求进入后端，则不得返回“撤销、无风险”的成功结果。
+
 ## T01 / T02 / T03 普通 Approve 对照（可选、真实交易）
 
 1. 仅在测试钱包有 ETH 且允许发真实 Mainnet 交易时展开“链上操作”。
@@ -109,6 +141,8 @@
 
 - P01、P02、P04、P06、P07、P09 的正常 EOA 和黑名单矩阵全部符合风险预期。
 - P03、P05、P08、P10 撤销矩阵无授权误报。
+- S01–S04、S09–S10 的正常 EOA / 黑名单矩阵保留授权提醒与阻断。
+- S05–S08 的不同零值编码均为撤销语义，无新增授权误报。
 - N01 不误判，N02 证明正常 fixture 确为 EOA。
 - 地址、token、amount、chain、risk message 均与请求一致，无串用或重复风险。
 - API 回归通过不能代替以上 App Preview、确认和阻断验收。

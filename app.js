@@ -93,7 +93,7 @@ async function signTyped(caseId, typedData) {
   }
 }
 
-function usdcPermit(value, nonce) {
+function usdcPermit(value, nonce, extraMessage = {}) {
   return {
     types: {
       EIP712Domain: [{ name: 'name', type: 'string' }, { name: 'version', type: 'string' }, { name: 'chainId', type: 'uint256' }, { name: 'verifyingContract', type: 'address' }],
@@ -101,11 +101,11 @@ function usdcPermit(value, nonce) {
     },
     primaryType: 'Permit',
     domain: { name: 'USD Coin', version: '2', chainId: CHAIN_ID, verifyingContract: USDC },
-    message: { owner: account, spender: selectedSpender(), value: value.toString(), nonce: nonce.toString(), deadline: nowPlus().toString() }
+    message: { owner: account, spender: selectedSpender(), value, nonce: nonce.toString(), deadline: nowPlus().toString(), ...extraMessage }
   }
 }
 
-function daiPermit(allowed, nonce) {
+function daiPermit(allowed, nonce, extraMessage = {}) {
   return {
     types: {
       EIP712Domain: [{ name: 'name', type: 'string' }, { name: 'version', type: 'string' }, { name: 'chainId', type: 'uint256' }, { name: 'verifyingContract', type: 'address' }],
@@ -113,12 +113,12 @@ function daiPermit(allowed, nonce) {
     },
     primaryType: 'Permit',
     domain: { name: 'Dai Stablecoin', version: '1', chainId: CHAIN_ID, verifyingContract: DAI },
-    message: { holder: account, spender: selectedSpender(), nonce: nonce.toString(), expiry: nowPlus().toString(), allowed }
+    message: { holder: account, spender: selectedSpender(), nonce: nonce.toString(), expiry: nowPlus().toString(), allowed, ...extraMessage }
   }
 }
 
 function permitDetails(token, amount, nonce, expiration) {
-  return { token, amount: amount.toString(), expiration: expiration.toString(), nonce: nonce.toString() }
+  return { token, amount, expiration: expiration.toString(), nonce: nonce.toString() }
 }
 
 function permit2Types(primaryType) {
@@ -178,16 +178,26 @@ async function sendApprove(caseId, amount) {
 }
 
 const cases = {
-  usdcPermitOne: async () => signTyped('P01-usdc-permit-one', usdcPermit(ONE_USDC, await nonceOf(USDC))),
-  usdcPermitMax: async () => signTyped('P02-usdc-permit-max', usdcPermit(MAX256, await nonceOf(USDC))),
-  usdcPermitZero: async () => signTyped('P03-usdc-permit-zero', usdcPermit(0n, await nonceOf(USDC))),
+  usdcPermitOne: async () => signTyped('P01-usdc-permit-one', usdcPermit(ONE_USDC.toString(), await nonceOf(USDC))),
+  usdcPermitMax: async () => signTyped('P02-usdc-permit-max', usdcPermit(MAX256.toString(), await nonceOf(USDC))),
+  usdcPermitZero: async () => signTyped('P03-usdc-permit-zero', usdcPermit('0', await nonceOf(USDC))),
   daiPermitAllow: async () => signTyped('P04-dai-permit-allow', daiPermit(true, await nonceOf(DAI))),
   daiPermitDeny: async () => signTyped('P05-dai-permit-deny', daiPermit(false, await nonceOf(DAI))),
-  permit2SingleOne: async () => signTyped('P06-permit2-single-one', await permit2Single(ONE_USDC)),
-  permit2SingleMax: async () => signTyped('P07-permit2-single-max', await permit2Single(MAX160)),
-  permit2SingleZero: async () => signTyped('P08-permit2-single-zero', await permit2Single(0n)),
-  permit2BatchMixed: async () => signTyped('P09-permit2-batch-mixed', await permit2Batch(0n, ONE_DAI)),
-  permit2BatchZero: async () => signTyped('P10-permit2-batch-zero', await permit2Batch(0n, 0n)),
+  permit2SingleOne: async () => signTyped('P06-permit2-single-one', await permit2Single(ONE_USDC.toString())),
+  permit2SingleMax: async () => signTyped('P07-permit2-single-max', await permit2Single(MAX160.toString())),
+  permit2SingleZero: async () => signTyped('P08-permit2-single-zero', await permit2Single('0')),
+  permit2BatchMixed: async () => signTyped('P09-permit2-batch-mixed', await permit2Batch('0', ONE_DAI.toString())),
+  permit2BatchZero: async () => signTyped('P10-permit2-batch-zero', await permit2Batch('0', '0')),
+  erc2612HexOne: async () => signTyped('S01-erc2612-hex-one', usdcPermit('0x1', await nonceOf(USDC))),
+  permit2SingleNumberOne: async () => signTyped('S02-permit2-single-number-one', await permit2Single(1)),
+  permit2BatchStringHex: async () => signTyped('S03-permit2-batch-string-hex', await permit2Batch('0', '0x1')),
+  permit2BatchStringNumber: async () => signTyped('S04-permit2-batch-string-number', await permit2Batch('0', 1)),
+  erc2612HexZero: async () => signTyped('S05-erc2612-hex-zero', usdcPermit('0x0', await nonceOf(USDC))),
+  permit2SingleNumberZero: async () => signTyped('S06-permit2-single-number-zero', await permit2Single(0)),
+  permit2BatchStringHexZero: async () => signTyped('S07-permit2-batch-string-hex-zero', await permit2Batch('0', '0x0')),
+  permit2BatchStringNumberZero: async () => signTyped('S08-permit2-batch-string-number-zero', await permit2Batch('0', 0)),
+  erc2612UndeclaredAllowed: async () => signTyped('S09-erc2612-undeclared-allowed-false', usdcPermit('1', await nonceOf(USDC), { allowed: false })),
+  daiUndeclaredValue: async () => signTyped('S10-dai-undeclared-value-zero', daiPermit(true, await nonceOf(DAI), { value: 0 })),
   plainTypedData: async () => signTyped('N01-non-permit-typed-data', plainTypedData()),
   checkSpender: async () => {
     const spender = selectedSpender()
