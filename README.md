@@ -11,6 +11,9 @@ It generates Ethereum Mainnet EIP-712 requests for:
 - security regression encodings: hex integers, JSON numbers, mixed batch
   representations, and mixed zero representations
 - undeclared-field interference controls for ERC-2612 and DAI-style Permit
+- SEC-002 spender-address controls: valid unprefixed addresses across ERC-2612,
+  DAI, PermitSingle, and PermitBatch approval/revoke paths, plus a non-Permit
+  negative control
 - non-Permit typed-data negative control
 - standard USDC `approve` / revoke transaction controls and allowance reads
 
@@ -55,6 +58,8 @@ currently valid risk fixture and record its provenance with the test evidence.
 - Batch mixed amount: risk binds to the non-zero detail, not only the first item
 - raw JSON type is preserved in S01–S10; verify copied evidence rather than only
   the wallet's formatted token amount
+- A01–A09 preserve an unprefixed 40-hex-character `message.spender`; risk lookup
+  must use its canonical address without rewriting the signed payload
 
 Record the App version/build, OS, device, spender mode/address provenance,
 screenshots or recording, copied JSON evidence, and actual result for every case.

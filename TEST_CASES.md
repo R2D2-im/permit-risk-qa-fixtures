@@ -127,6 +127,38 @@
 
 说明：空值、缺失、负数、越界、不完整批次、重复或歧义 schema 可能在钱包 EIP-712 编码层先被拒绝，不能稳定到达 Preview，因此以 API/单测作为主验收；若 App 允许请求进入后端，则不得返回“撤销、无风险”的成功结果。
 
+## A01–A04 SEC-002 无前缀非零授权
+
+对正常 EOA 和有效黑名单 spender 分别执行。每次返回 DApp 后复制 JSON，确认 `request.message.spender` 是 40 位 hex 且没有 `0x` 前缀：
+
+- A01：ERC-2612 `value:"1"`。
+- A02：DAI `allowed:true`。
+- A03：PermitSingle `amount:"1"`。
+- A04：PermitBatch amounts 为 `["0","1"]`。
+
+预期：原始 typed data 保持无前缀，不由 DApp 或 Preview 改写。普通 EOA 出现 `risk_info_approve_address_eoa` 且可继续风险确认；黑名单出现 EOA 与 `address_is_block` 两项风险，且只能拒绝。A04 必须识别第二项非零金额。
+
+## A05–A08 SEC-002 无前缀真实撤销
+
+对正常 EOA 和有效黑名单 spender 分别执行，并确认复制的 JSON 中 spender 仍无前缀：
+
+- A05：ERC-2612 `value:"0"`。
+- A06：DAI `allowed:false`。
+- A07：PermitSingle `amount:"0"`。
+- A08：PermitBatch amounts 为 `["0","0"]`。
+
+预期：四项均按撤销处理，不出现 EOA 或黑名单新增授权风险。地址规范化只能用于风险查询，不能改变待签 payload 或把真实撤销变成授权。
+
+## A09 SEC-002 非 Permit 反向对照
+
+1. 对正常与黑名单 spender 分别执行 A09。
+2. 确认 `primaryType=Order`、`Order.spender` 类型为 `address`，实际值为无前缀地址。
+3. 检查 Preview 与风险详情。
+
+预期：不得仅因字段名为 `spender` 或地址可规范化而进入 Permit / Approve 风险链路；不展示 EOA / blacklist 授权风险。
+
+说明：短地址、超长地址、非 hex、空值、null、number、boolean、object、array，以及 spender 声明缺失、类型错误、重复或歧义等输入，可能由 App 的 EIP-712 编码层先拒绝，以 API/单测作为主验收。它们不得被补零或截断为另一个有效地址，也不得被判定为无风险撤销。
+
 ## T01 / T02 / T03 普通 Approve 对照（可选、真实交易）
 
 1. 仅在测试钱包有 ETH 且允许发真实 Mainnet 交易时展开“链上操作”。
@@ -143,6 +175,8 @@
 - P03、P05、P08、P10 撤销矩阵无授权误报。
 - S01–S04、S09–S10 的正常 EOA / 黑名单矩阵保留授权提醒与阻断。
 - S05–S08 的不同零值编码均为撤销语义，无新增授权误报。
+- A01–A04 的无前缀非零 spender 均保留 EOA 提醒与黑名单阻断。
+- A05–A08 的无前缀撤销均无新增授权误报；A09 不误入授权风险链路。
 - N01 不误判，N02 证明正常 fixture 确为 EOA。
 - 地址、token、amount、chain、risk message 均与请求一致，无串用或重复风险。
 - API 回归通过不能代替以上 App Preview、确认和阻断验收。

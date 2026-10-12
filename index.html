@@ -36,7 +36,7 @@
 </head>
 <body>
 <nav aria-label="测试分组">
-  <a href="#setup">准备</a><a href="#permit">Permit</a><a href="#dai">DAI Permit</a><a href="#permit2">Permit2</a><a href="#security">安全编码</a><a href="#negative">对照</a><a href="#tx">链上操作</a><a href="#evidence">证据</a>
+  <a href="#setup">准备</a><a href="#permit">Permit</a><a href="#dai">DAI Permit</a><a href="#permit2">Permit2</a><a href="#security">SEC-001</a><a href="#spender-address">SEC-002</a><a href="#negative">对照</a><a href="#tx">链上操作</a><a href="#evidence">证据</a>
 </nav>
 <main>
   <p>OPS-262 · imToken QA fixture</p>
@@ -122,8 +122,28 @@
     </div></details>
   </section>
 
+  <section id="spender-address">
+    <h2>6. SEC-002 无 0x 前缀 spender</h2>
+    <p class="notice">这些请求会从当前选择的 spender 去掉 <code>0x</code> 后再发送。请在复制的 JSON 中确认 <code>message.spender</code> 恰好为 40 位 hex 且没有前缀；Preview 中的风险目标仍应是同一个规范地址。</p>
+    <details open><summary>无前缀非零授权 · 4 cases</summary><div class="grid">
+      <article class="case"><span class="tag">仅签名</span><h3>A01 · ERC-2612 无前缀授权</h3><p><code>value:"1"</code>。普通 EOA 必须提醒；黑名单必须阻断，不能因 spender 无前缀漏判。</p><button data-case="erc2612UnprefixedApprove">发起签名</button></article>
+      <article class="case"><span class="tag">仅签名</span><h3>A02 · DAI 无前缀授权</h3><p><code>allowed:true</code>。风险行为应与带前缀 DAI Permit 完全一致。</p><button data-case="daiUnprefixedApprove">发起签名</button></article>
+      <article class="case"><span class="tag">仅签名</span><h3>A03 · PermitSingle 无前缀授权</h3><p><code>amount:"1"</code>。嵌套 details 不得影响 spender 规范化与风险查询。</p><button data-case="permit2SingleUnprefixedApprove">发起签名</button></article>
+      <article class="case"><span class="tag">仅签名</span><h3>A04 · PermitBatch 无前缀授权</h3><p>amounts 为 <code>["0","1"]</code>。必须遍历到第二项非零金额并识别无前缀 spender。</p><button data-case="permit2BatchUnprefixedApprove">发起签名</button></article>
+    </div></details>
+    <details open><summary>无前缀真实撤销 · 4 cases</summary><div class="grid">
+      <article class="case"><span class="tag">仅签名</span><h3>A05 · ERC-2612 无前缀撤销</h3><p><code>value:"0"</code>。应显示撤销，不误报新增授权风险。</p><button data-case="erc2612UnprefixedRevoke">发起签名</button></article>
+      <article class="case"><span class="tag">仅签名</span><h3>A06 · DAI 无前缀撤销</h3><p><code>allowed:false</code>。应显示撤销，不因地址规范化产生误报。</p><button data-case="daiUnprefixedRevoke">发起签名</button></article>
+      <article class="case"><span class="tag">仅签名</span><h3>A07 · PermitSingle 无前缀撤销</h3><p><code>amount:"0"</code>。普通与黑名单地址均不得误报新增授权。</p><button data-case="permit2SingleUnprefixedRevoke">发起签名</button></article>
+      <article class="case"><span class="tag">仅签名</span><h3>A08 · PermitBatch 无前缀撤销</h3><p>amounts 为 <code>["0","0"]</code>。整批应按撤销处理。</p><button data-case="permit2BatchUnprefixedRevoke">发起签名</button></article>
+    </div></details>
+    <details open><summary>非 Permit 反向对照 · 1 case</summary><div class="grid">
+      <article class="case"><span class="tag">仅签名</span><h3>A09 · Order 中的无前缀 spender</h3><p><code>primaryType=Order</code>，spender 字段类型为 address。不得仅因字段名和无前缀地址而进入 Approve 风险链路。</p><button data-case="nonPermitUnprefixedSpender">发起签名</button></article>
+    </div></details>
+  </section>
+
   <section id="negative">
-    <h2>6. 反向与解析对照</h2>
+    <h2>7. 反向与解析对照</h2>
     <details open><summary>不应进入 Approve 风险链路 · 2 cases</summary><div class="grid">
       <article class="case"><span class="tag">仅签名</span><h3>N01 · 非 Permit typed data</h3><p>primaryType=Mail，包含普通文本。不得识别为授权或展示 EOA Approve 风险。</p><button data-case="plainTypedData">发起签名</button></article>
       <article class="case"><span class="tag read">只读</span><h3>N02 · 检查 spender code</h3><p>读取当前 spender 的 bytecode。正常地址应为 <code>0x</code>；若不是，不能用于 EOA 用例。</p><button data-case="checkSpender">读取</button></article>
@@ -131,7 +151,7 @@
   </section>
 
   <section id="tx">
-    <h2>7. 普通 Approve 链上对照</h2>
+    <h2>8. 普通 Approve 链上对照</h2>
     <p class="warn">以下会生成真实 Ethereum Mainnet 交易并消耗 gas。无需验证时不要执行；浏览器会先二次确认。</p>
     <details><summary>链上操作 · 3 cases</summary><div class="grid">
       <article class="case"><span class="tag tx">链上交易</span><h3>T01 · USDC approve 1</h3><p>普通 Approve 正向对照，spender 风险提示不得回退。</p><button class="danger" data-case="approveOne">生成交易</button></article>
@@ -141,7 +161,7 @@
   </section>
 
   <section id="evidence" class="card">
-    <h2>8. QA 证据</h2>
+    <h2>9. QA 证据</h2>
     <button id="copy">复制 JSON</button><button id="clear">清空</button>
     <pre id="output">尚未执行用例</pre>
   </section>

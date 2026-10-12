@@ -38,6 +38,10 @@ function selectedSpender() {
   return value
 }
 
+function unprefixedSpender() {
+  return selectedSpender().replace(/^0x/i, '')
+}
+
 function evidence(kind, caseId, request, response) {
   lastEvidence = {
     timestamp: new Date().toISOString(),
@@ -93,7 +97,7 @@ async function signTyped(caseId, typedData) {
   }
 }
 
-function usdcPermit(value, nonce, extraMessage = {}) {
+function usdcPermit(value, nonce, extraMessage = {}, spender = selectedSpender()) {
   return {
     types: {
       EIP712Domain: [{ name: 'name', type: 'string' }, { name: 'version', type: 'string' }, { name: 'chainId', type: 'uint256' }, { name: 'verifyingContract', type: 'address' }],
@@ -101,11 +105,11 @@ function usdcPermit(value, nonce, extraMessage = {}) {
     },
     primaryType: 'Permit',
     domain: { name: 'USD Coin', version: '2', chainId: CHAIN_ID, verifyingContract: USDC },
-    message: { owner: account, spender: selectedSpender(), value, nonce: nonce.toString(), deadline: nowPlus().toString(), ...extraMessage }
+    message: { owner: account, spender, value, nonce: nonce.toString(), deadline: nowPlus().toString(), ...extraMessage }
   }
 }
 
-function daiPermit(allowed, nonce, extraMessage = {}) {
+function daiPermit(allowed, nonce, extraMessage = {}, spender = selectedSpender()) {
   return {
     types: {
       EIP712Domain: [{ name: 'name', type: 'string' }, { name: 'version', type: 'string' }, { name: 'chainId', type: 'uint256' }, { name: 'verifyingContract', type: 'address' }],
@@ -113,7 +117,7 @@ function daiPermit(allowed, nonce, extraMessage = {}) {
     },
     primaryType: 'Permit',
     domain: { name: 'Dai Stablecoin', version: '1', chainId: CHAIN_ID, verifyingContract: DAI },
-    message: { holder: account, spender: selectedSpender(), nonce: nonce.toString(), expiry: nowPlus().toString(), allowed, ...extraMessage }
+    message: { holder: account, spender, nonce: nonce.toString(), expiry: nowPlus().toString(), allowed, ...extraMessage }
   }
 }
 
@@ -132,8 +136,7 @@ function permit2Types(primaryType) {
   return types
 }
 
-async function permit2Single(amount) {
-  const spender = selectedSpender()
+async function permit2Single(amount, spender = selectedSpender()) {
   const expiry = nowPlus()
   return {
     types: permit2Types('PermitSingle'), primaryType: 'PermitSingle',
@@ -142,8 +145,7 @@ async function permit2Single(amount) {
   }
 }
 
-async function permit2Batch(firstAmount, secondAmount) {
-  const spender = selectedSpender()
+async function permit2Batch(firstAmount, secondAmount, spender = selectedSpender()) {
   const expiry = nowPlus()
   const [usdcNonce, daiNonce] = await Promise.all([permit2NonceOf(USDC, spender), permit2NonceOf(DAI, spender)])
   return {
@@ -164,6 +166,17 @@ function plainTypedData() {
     },
     primaryType: 'Mail', domain: { name: 'OPS-262 Negative Control', version: '1', chainId: CHAIN_ID },
     message: { from: account, contents: 'This is not a Permit or approval.' }
+  }
+}
+
+function plainSpenderTypedData() {
+  return {
+    types: {
+      EIP712Domain: [{ name: 'name', type: 'string' }, { name: 'chainId', type: 'uint256' }],
+      Order: [{ name: 'spender', type: 'address' }, { name: 'contents', type: 'string' }]
+    },
+    primaryType: 'Order', domain: { name: 'SEC-002 Negative Control', chainId: CHAIN_ID },
+    message: { spender: unprefixedSpender(), contents: 'This is not a Permit or approval.' }
   }
 }
 
@@ -198,6 +211,15 @@ const cases = {
   permit2BatchStringNumberZero: async () => signTyped('S08-permit2-batch-string-number-zero', await permit2Batch('0', 0)),
   erc2612UndeclaredAllowed: async () => signTyped('S09-erc2612-undeclared-allowed-false', usdcPermit('1', await nonceOf(USDC), { allowed: false })),
   daiUndeclaredValue: async () => signTyped('S10-dai-undeclared-value-zero', daiPermit(true, await nonceOf(DAI), { value: 0 })),
+  erc2612UnprefixedApprove: async () => signTyped('A01-erc2612-unprefixed-approve', usdcPermit('1', await nonceOf(USDC), {}, unprefixedSpender())),
+  daiUnprefixedApprove: async () => signTyped('A02-dai-unprefixed-approve', daiPermit(true, await nonceOf(DAI), {}, unprefixedSpender())),
+  permit2SingleUnprefixedApprove: async () => signTyped('A03-permit2-single-unprefixed-approve', await permit2Single('1', unprefixedSpender())),
+  permit2BatchUnprefixedApprove: async () => signTyped('A04-permit2-batch-unprefixed-approve', await permit2Batch('0', '1', unprefixedSpender())),
+  erc2612UnprefixedRevoke: async () => signTyped('A05-erc2612-unprefixed-revoke', usdcPermit('0', await nonceOf(USDC), {}, unprefixedSpender())),
+  daiUnprefixedRevoke: async () => signTyped('A06-dai-unprefixed-revoke', daiPermit(false, await nonceOf(DAI), {}, unprefixedSpender())),
+  permit2SingleUnprefixedRevoke: async () => signTyped('A07-permit2-single-unprefixed-revoke', await permit2Single('0', unprefixedSpender())),
+  permit2BatchUnprefixedRevoke: async () => signTyped('A08-permit2-batch-unprefixed-revoke', await permit2Batch('0', '0', unprefixedSpender())),
+  nonPermitUnprefixedSpender: async () => signTyped('A09-non-permit-unprefixed-spender', plainSpenderTypedData()),
   plainTypedData: async () => signTyped('N01-non-permit-typed-data', plainTypedData()),
   checkSpender: async () => {
     const spender = selectedSpender()
