@@ -56,9 +56,9 @@
       <div><span class="label">DAI</span><br><code id="daiAddress"></code></div>
       <div><span class="label">Permit2</span><br><code id="permit2Address"></code></div>
     </div>
-    <label for="spender">正常 EOA spender（默认 Felix 提供地址）</label>
+    <label for="spender">正常 EOA spender（可带或不带 0x；普通用例会规范为带前缀，SEC-002 用例会发送无前缀）</label>
     <input id="spender" autocomplete="off">
-    <label for="riskSpender">黑名单 spender（必填；使用 QA 当前有效 fixture）</label>
+    <label for="riskSpender">黑名单 spender（可带或不带 0x；使用 QA 当前有效 fixture）</label>
     <input id="riskSpender" placeholder="0x… 不提供时黑名单用例不会执行" autocomplete="off">
     <label for="spenderMode">本次按钮使用的 spender</label>
     <select id="spenderMode"><option value="normal">正常 EOA spender</option><option value="risk">黑名单 spender</option></select>

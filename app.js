@@ -23,7 +23,8 @@ function provider() {
   return window.ethereum
 }
 
-function validAddress(value) { return /^0x[0-9a-fA-F]{40}$/.test(value) }
+function validAddress(value) { return /^(?:0x)?[0-9a-fA-F]{40}$/i.test(value) }
+function prefixedAddress(value) { return `0x${value.replace(/^0x/i, '')}` }
 function word(value) { return value.toString().replace(/^0x/, '').toLowerCase().padStart(64, '0') }
 function addressWord(value) { return word(value) }
 function uintWord(value) { return word(`0x${BigInt(value).toString(16)}`) }
@@ -35,7 +36,7 @@ function selectedSpender() {
   const id = mode === 'risk' ? 'riskSpender' : 'spender'
   const value = $(id).value.trim()
   if (!validAddress(value)) throw new Error(`${mode === 'risk' ? '黑名单' : '正常'} spender 地址无效`)
-  return value
+  return prefixedAddress(value)
 }
 
 function unprefixedSpender() {
